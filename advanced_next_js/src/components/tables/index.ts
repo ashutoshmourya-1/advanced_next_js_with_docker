@@ -1,0 +1,1 @@
+export { default as UserDetailsTable } from "./user_details_table";

@@ -1,0 +1,1 @@
+export {default as UserDetailsForm} from "./user_details_form"
