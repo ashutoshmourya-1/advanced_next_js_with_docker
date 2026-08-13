@@ -24,21 +24,23 @@ const columns = column_helper.columns([
   column_helper.accessor("next_basic", {
     header: "Next Js Basic Concepts Completed",
     cell: (info) => {
-      if (info.getValue() === true) {
-        <i>Done</i>;
-      } else {
-        <i>In-Progress</i>;
+      if (info.renderValue() === true) {
+        return <i className="text-green-600 bg-green-300 rounded-2xl">Done</i>;
       }
+      return (
+        <i className="text-amber-600 bg-amber-300 rounded-2xl">In-Progress</i>
+      );
     },
   }),
   column_helper.accessor("next_advance", {
     header: "Next Js Advance Concepts Completed",
     cell: (info) => {
       if (info.getValue() === true) {
-        <i>Done</i>;
-      } else {
-        <i>In-Progress</i>;
+        return <i className="text-green-600 bg-green-300 rounded-2xl">Done</i>;
       }
+      return (
+        <i className="text-amber-600 bg-amber-300 rounded-2xl">In-Progress</i>
+      );
     },
   }),
 ]);

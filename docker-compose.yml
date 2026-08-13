@@ -6,7 +6,7 @@ services:
     env_file:
       - ./advanced_next_js/.env
     ports:
-      - "${NEXT_PUBLIC_PORT}:${NEXT_PUBLIC_PORT}"
+      - "${NEXT_JS_PORT}:${NEXT_JS_PORT}"
     networks:
       - next_node
     depends_on:
@@ -20,7 +20,7 @@ services:
     env_file:
       - ./node_js/.env
     ports:
-      - "${PORT}:${PORT}"
+      - "${NODE_JS_PORT}:${NODE_JS_PORT}"
     restart: unless-stopped
     networks:
       - next_node

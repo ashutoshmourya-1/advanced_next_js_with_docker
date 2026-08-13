@@ -16,7 +16,6 @@ This document explains the Docker setup used in this project, including:
 * `depends_on`
 * Restart policies
 * Distroless production images
-* Husky + lint/build checks
 * Common issues encountered and their solutions
 * Useful Docker commands
 
@@ -240,7 +239,6 @@ The final container does not need:
 
 * TypeScript
 * ESLint
-* Husky
 * source files
 * pnpm
 * build tools
@@ -671,7 +669,7 @@ works inside the Docker network.
 A common mistake is:
 
 ```text
-postgresql://postgres:postgres@localhost:5432/next_node_db
+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
 ```
 
 Inside the Express container:
@@ -1112,68 +1110,7 @@ husky: not found
 
 ---
 
-# 28. Why Husky Should Not Be Inside the Production Image
-
-Husky is a development tool.
-
-It is used for Git hooks such as:
-
-```text
-pre-commit
-pre-push
-```
-
-Production containers do not need Git hooks.
-
-Therefore the clean approach is to prevent Husky from running during production dependency installation/pruning.
-
-For example, the `prepare` script can be made CI-aware.
-
-A common pattern is:
-
-```json
-{
-  "scripts": {
-    "prepare": "husky"
-  }
-}
-```
-
-and configure the environment so that Husky is skipped in CI/container builds.
-
-Another approach is to avoid running `pnpm prune --prod` in the same stage where lifecycle scripts cause the development-only Husky dependency to be invoked.
-
----
-
-# 29. Husky Checks
-
-The project uses Husky to run checks before Git operations.
-
-For example:
-
-```text
-git commit
-    ↓
-pre-commit
-    ↓
-pnpm lint
-```
-
-And:
-
-```text
-git push
-    ↓
-pre-push
-    ↓
-pnpm build
-```
-
-This prevents code from being committed or pushed when important checks fail.
-
----
-
-# 30. Why Build Failed During Git Commit
+# 28. Why Build Failed During Git Commit
 
 The commit hook executed:
 
@@ -1216,7 +1153,7 @@ A production-friendly solution is to self-host fonts using `next/font/local` if 
 
 ---
 
-# 31. Docker Build Network Errors
+# 29. Docker Build Network Errors
 
 During Docker dependency installation, errors such as:
 
@@ -1248,7 +1185,7 @@ Docker was eventually able to retry and download the packages.
 
 ---
 
-# 32. PostgreSQL `ENOTFOUND postgres`
+# 30. PostgreSQL `ENOTFOUND postgres`
 
 An important error was:
 
@@ -1298,7 +1235,7 @@ works through Docker's internal DNS.
 
 ---
 
-# 33. PostgreSQL Container Not Running
+# 31. PostgreSQL Container Not Running
 
 Another error occurred when trying:
 
@@ -1337,7 +1274,7 @@ The logs showed the PostgreSQL 18 volume layout issue.
 
 ---
 
-# 34. How to Access PostgreSQL
+# 32. How to Access PostgreSQL
 
 If PostgreSQL is running:
 
@@ -1382,7 +1319,7 @@ Exit PostgreSQL.
 
 ---
 
-# 35. Where Docker Volumes Are Stored
+# 33. Where Docker Volumes Are Stored
 
 Docker manages named volumes.
 
@@ -1413,7 +1350,7 @@ database backup tools
 
 ---
 
-# 36. Docker Compose Startup Flow
+# 34. Docker Compose Startup Flow
 
 When running:
 
@@ -1449,7 +1386,7 @@ docker compose
 
 ---
 
-# 37. Build vs Run
+# 35. Build vs Run
 
 These are different operations.
 
@@ -1485,7 +1422,7 @@ This is commonly used during development after Dockerfile changes.
 
 ---
 
-# 38. Running in Background
+# 36. Running in Background
 
 Instead of attaching to logs:
 
@@ -1511,7 +1448,7 @@ can be used to view logs.
 
 ---
 
-# 39. Viewing Individual Container Logs
+# 37. Viewing Individual Container Logs
 
 Next.js:
 
@@ -1539,7 +1476,7 @@ docker logs -f node_js
 
 ---
 
-# 40. Checking Container Status
+# 38. Checking Container Status
 
 ```bash
 docker ps
@@ -1563,7 +1500,7 @@ This also shows health status when health checks are configured.
 
 ---
 
-# 41. Stopping the Application
+# 39. Stopping the Application
 
 ```bash
 docker compose down
@@ -1585,7 +1522,7 @@ Use this carefully.
 
 ---
 
-# 42. Rebuilding From Scratch
+# 40. Rebuilding From Scratch
 
 If Docker cache or old containers are causing problems:
 
@@ -1606,7 +1543,7 @@ Again, `-v` removes database volumes.
 
 ---
 
-# 43. Dockerfile vs Docker Compose
+# 41. Dockerfile vs Docker Compose
 
 These two files have different responsibilities.
 
@@ -1651,7 +1588,7 @@ Services
 
 ---
 
-# 44. Current Architecture
+# 42. Current Architecture
 
 The final architecture is approximately:
 
@@ -1697,7 +1634,7 @@ PostgreSQL
 
 ---
 
-# 45. Recommended Development Workflow
+# 43. Recommended Development Workflow
 
 ## Step 1 — Start Docker
 
@@ -1782,7 +1719,7 @@ http://localhost:3000
 
 ---
 
-# 46. Useful Docker Commands
+# 44. Useful Docker Commands
 
 ## List images
 
@@ -1853,7 +1790,7 @@ docker logs -f <container>
 
 ---
 
-# 47. Important Rules
+# 45. Important Rules
 
 ### Rule 1 — Containers should be disposable
 
@@ -1910,7 +1847,6 @@ Production does not need:
 ```text
 TypeScript
 ESLint
-Husky
 test tools
 build tools
 ```
@@ -1929,7 +1865,7 @@ should only be used when database data can be deleted or has been backed up.
 
 ---
 
-# 48. Final Mental Model
+# 46. Final Mental Model
 
 The most important thing to understand is:
 
