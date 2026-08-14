@@ -1,0 +1,28 @@
+name: Preview Depolyment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/chekout@7
+
+      - name: Set-up Node
+        uses: actions/setup-node@7
+        with:
+          node-version: 24
+
+      - name: Enable Pnpm
+        uses: pnpm/actions-setup@7
+        with:
+          version: 11
+
+      - name: Start PR preview
+        run: |
+          chmod +x ./scripts/start-preview.sh
+          ./scripts/start-preview.sh "${{ github.event.pull_request.number }}"

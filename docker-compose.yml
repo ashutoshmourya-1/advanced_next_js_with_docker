@@ -2,13 +2,12 @@ services:
   next_js:
     build: 
       context: ./advanced_next_js
-    container_name: next_js
     env_file:
       - ./advanced_next_js/.env
-    ports:
-      - "${NEXT_JS_PORT}:${NEXT_JS_PORT}"
+      - ./.env
     networks:
-      - next_node
+      - pr_backend
+      - preview_proxy
     depends_on:
       node_js:
         condition: service_healthy
@@ -16,44 +15,26 @@ services:
   node_js:
     build:
       context: ./node_js
-    container_name: node_js
     env_file:
       - ./node_js/.env
-    ports:
-      - "${NODE_JS_PORT}:${NODE_JS_PORT}"
-    restart: unless-stopped
+      - ./.env
     networks:
-      - next_node
+      - pr_backend
+      - preview_backend
     healthcheck:
       test: ["CMD", "/nodejs/bin/node", "health_check.js"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
-    depends_on:
-      postgres:
-        condition: service_healthy
-  
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    env_file:
-      - ./node_js/.env
-    networks:
-      - next_node
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
-    volumes:
-      - postgres_data:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-  
-volumes:
-  postgres_data:
 
 networks:
-  next_node:
+  pr_backend:
+
+  preview_proxy:
+    external: true
+    name: preview_proxy
+
+  preview_backend:
+    external: true
+    name: preview_backend

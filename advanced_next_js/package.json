@@ -34,6 +34,7 @@
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.0.1",
     "@eslint/markdown": "^8.0.3",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -46,7 +47,8 @@
     "husky": "^9.1.7",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.66.0",
+    "wrangler": "^4.121.0"
   },
-  "packageManager": "pnpm@11.16.0"
+  "packageManager": "pnpm@11.21.0"
 }

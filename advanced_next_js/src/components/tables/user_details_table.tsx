@@ -25,10 +25,10 @@ const columns = column_helper.columns([
     header: "Next Js Basic Concepts Completed",
     cell: (info) => {
       if (info.renderValue() === true) {
-        return <i className="text-green-600 bg-green-300 rounded-2xl">Done</i>;
+        return <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>;
       }
       return (
-        <i className="text-amber-600 bg-amber-300 rounded-2xl">In-Progress</i>
+        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">In-Progress</i>
       );
     },
   }),
@@ -36,10 +36,10 @@ const columns = column_helper.columns([
     header: "Next Js Advance Concepts Completed",
     cell: (info) => {
       if (info.getValue() === true) {
-        return <i className="text-green-600 bg-green-300 rounded-2xl">Done</i>;
+        return <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>;
       }
       return (
-        <i className="text-amber-600 bg-amber-300 rounded-2xl">In-Progress</i>
+        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">In-Progress</i>
       );
     },
   }),
@@ -59,7 +59,7 @@ export default function UserDetailsTable({
     (state) => state,
   );
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div className="w-1/2 mx-auto overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
       <table className="w-full border-collapse text-sm">
         <thead className="bg-zinc-100 dark:bg-zinc-900">
           {table.getHeaderGroups().map((headerGroup) => (
