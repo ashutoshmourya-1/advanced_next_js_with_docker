@@ -32,6 +32,7 @@ export default function UserDetailsForm({
         throw new Error(response.error.message);
       }
       onOpenChange(false);
+      form.reset();
       router.refresh();
     },
   });

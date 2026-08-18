@@ -6,7 +6,6 @@ yarn-error.log*
 pnpm-debug.log*
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 .env
 .env.*
 .DS_Store

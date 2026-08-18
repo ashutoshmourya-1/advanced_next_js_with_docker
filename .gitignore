@@ -7,3 +7,7 @@ dist/
 
 Docker volumes/
 *.log
+
+actions-runner/
+
+.secrets
