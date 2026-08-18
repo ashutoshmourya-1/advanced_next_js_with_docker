@@ -13,6 +13,7 @@ PROJECT_NAME="pr-${PR_NUMBER}"
 PREVIEW_HOST="pr-${PR_NUMBER}.localhost"
 
 NEXT_CONTAINER="${PROJECT_NAME}-next_js-1"
+PREVIEW_NETWORK="preview_proxy"
 
 CADDY_ADMIN="http://127.0.0.1:2019"
 CADDY_SERVER_ID="srv0"
@@ -57,9 +58,10 @@ done
 
 echo "⏳ Checking Caddy HTTP server..."
 
-if ! curl -fsS \
-  "${CADDY_ADMIN}/config/apps/http/servers/${CADDY_SERVER_ID}" \
-  >/dev/null 2>&1; then
+if ! curl -fsS "${CADDY_ADMIN}/config/" \
+  | jq -e --arg id "$CADDY_SERVER_ID" \
+    '.apps.http.servers[$id]' \
+    >/dev/null; then
 
   echo "➕ Creating Caddy HTTP server..."
 
@@ -76,9 +78,7 @@ if ! curl -fsS \
   echo "✓ Caddy HTTP server created"
 
 else
-
   echo "✓ Caddy HTTP server already exists"
-
 fi
 
 echo "🐳 Starting PR containers..."
@@ -134,32 +134,20 @@ fi
 
 echo "✓ Next.js container is running"
 
-echo "⏳ Waiting for Next.js..."
+NEXT_IP="$(
+  docker inspect \
+    -f "{{with index .NetworkSettings.Networks \"${PREVIEW_NETWORK}\"}}{{.IPAddress}}{{end}}" \
+    "$NEXT_CONTAINER"
+)"
 
-for i in {1..30}; do
+if [[ -z "$NEXT_IP" ]]; then
+  echo "❌ Could not determine Next.js container IP"
+  docker inspect "$NEXT_CONTAINER" \
+    --format '{{json .NetworkSettings.Networks}}' | jq .
+  exit 1
+fi
 
-  if docker inspect \
-    --format '{{.State.Running}}' \
-    "$NEXT_CONTAINER" 2>/dev/null | grep -qx "true"; then
-
-    echo "✓ Next.js process is running"
-    break
-
-  fi
-
-  sleep 2
-
-  if [[ "$i" == "30" ]]; then
-
-    echo "❌ Next.js did not start"
-
-    docker logs "$NEXT_CONTAINER" --tail 50
-
-    exit 1
-
-  fi
-
-done
+echo "✓ Next.js IP: ${NEXT_IP}"
 
 echo "🧹 Removing existing Caddy route if present..."
 
@@ -191,7 +179,7 @@ curl -fsS \
       "handler": "reverse_proxy",
       "upstreams": [
         {
-          "dial": "${NEXT_CONTAINER}:3000"
+          "dial": "${NEXT_IP}:3000"
         }
       ]
     }
@@ -239,7 +227,7 @@ for i in {1..30}; do
       || true
   )"
 
-  if [[ "$HTTP_STATUS" != "000" && "$HTTP_STATUS" != "404" ]]; then
+  if [[ "$HTTP_STATUS" =~ ^2[0-9][0-9]$ || "$HTTP_STATUS" =~ ^3[0-9][0-9]$ ]]; then
 
     echo "✓ Preview is responding with HTTP ${HTTP_STATUS}"
 
