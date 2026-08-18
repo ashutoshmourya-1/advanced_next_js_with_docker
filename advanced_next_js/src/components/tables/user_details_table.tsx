@@ -21,14 +21,22 @@ const columns = column_helper.columns([
     header: "Email",
     cell: (info) => <i>{info.getValue()}</i>,
   }),
+  column_helper.accessor("phone_number", {
+    header: "Phone Number",
+    cell: (info) => <strong>{info.row.original.phone_number ?? "-"}</strong>,
+  }),
   column_helper.accessor("next_basic", {
     header: "Next Js Basic Concepts Completed",
     cell: (info) => {
       if (info.renderValue() === true) {
-        return <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>;
+        return (
+          <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>
+        );
       }
       return (
-        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">In-Progress</i>
+        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">
+          In-Progress
+        </i>
       );
     },
   }),
@@ -36,10 +44,14 @@ const columns = column_helper.columns([
     header: "Next Js Advance Concepts Completed",
     cell: (info) => {
       if (info.getValue() === true) {
-        return <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>;
+        return (
+          <i className="text-green-600 bg-green-300 rounded-2xl p-2">Done</i>
+        );
       }
       return (
-        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">In-Progress</i>
+        <i className="text-amber-600 bg-amber-300 rounded-2xl p-2">
+          In-Progress
+        </i>
       );
     },
   }),
