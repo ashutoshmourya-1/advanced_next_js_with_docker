@@ -123,31 +123,66 @@ for i in {1..30}; do
 done
 
 if ! docker ps --format '{{.Names}}' | grep -qx "$NEXT_CONTAINER"; then
-
   echo "❌ Next.js container is not running"
 
   docker logs "$NEXT_CONTAINER" --tail 50 || true
 
   exit 1
-
 fi
 
 echo "✓ Next.js container is running"
 
-NEXT_IP="$(
-  docker inspect \
-    -f "{{with index .NetworkSettings.Networks \"${PREVIEW_NETWORK}\"}}{{.IPAddress}}{{end}}" \
-    "$NEXT_CONTAINER"
-)"
+echo "⏳ Waiting for Next.js..."
 
-if [[ -z "$NEXT_IP" ]]; then
-  echo "❌ Could not determine Next.js container IP"
-  docker inspect "$NEXT_CONTAINER" \
-    --format '{{json .NetworkSettings.Networks}}' | jq .
-  exit 1
-fi
+for i in {1..30}; do
 
-echo "✓ Next.js IP: ${NEXT_IP}"
+  if docker exec preview-caddy \
+    nc -z "$NEXT_CONTAINER" 3000 >/dev/null 2>&1; then
+
+    echo "✓ Next.js is listening on port 3000"
+    break
+  fi
+
+  echo "  Next.js not ready yet (${i}/30)"
+  sleep 2
+
+  if [[ "$i" == "30" ]]; then
+    echo "❌ Next.js readiness timeout"
+
+    docker logs "$NEXT_CONTAINER" --tail 100 || true
+
+    exit 1
+  fi
+
+done
+
+echo "🔍 Checking Next.js HTTP response..."
+
+for i in {1..15}; do
+
+  if docker exec preview-caddy \
+    wget -q \
+    -O /dev/null \
+    "http://${NEXT_CONTAINER}:3000/"; then
+
+    echo "✓ Next.js HTTP endpoint is ready"
+    break
+  fi
+
+  echo "  HTTP endpoint not ready yet (${i}/15)"
+  sleep 2
+
+  if [[ "$i" == "15" ]]; then
+    echo "❌ Next.js HTTP readiness timeout"
+
+    docker logs "$NEXT_CONTAINER" --tail 100 || true
+
+    exit 1
+  fi
+
+done
+
+echo "✓ Next.js is fully ready"
 
 echo "🧹 Removing existing Caddy route if present..."
 
@@ -179,9 +214,14 @@ curl -fsS \
       "handler": "reverse_proxy",
       "upstreams": [
         {
-          "dial": "${NEXT_IP}:3000"
+          "dial": "${NEXT_CONTAINER}:3000"
         }
-      ]
+      ],
+      "load_balancing": {
+        "retries": 3,
+        "try_duration": "10s",
+        "try_interval": "500ms"
+      }
     }
   ],
   "terminal": true
@@ -243,7 +283,7 @@ for i in {1..30}; do
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
       echo "preview_url=http://${PREVIEW_HOST}" >> "$GITHUB_OUTPUT"
     fi
-    
+
     exit 0
 
   fi
