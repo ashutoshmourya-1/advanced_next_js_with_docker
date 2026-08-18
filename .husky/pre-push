@@ -1,7 +1,4 @@
 #!/usr/bin/env sh
 
-cd advanced_next_js
-pnpm build
-
-cd node_js
-pnpm build
+pnpm --dir advanced_next_js build
+pnpm --dir node_js build
