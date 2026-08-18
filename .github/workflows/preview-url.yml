@@ -94,3 +94,12 @@ jobs:
                 body: comment,
               });
             }
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚨 *Pipeline Failed*\n*Repo:* ${{ github.repository }}\n*Workflow:* ${{ github.workflow }}\n*Branch/PR:* #${{ github.event.pull_request.number }}\n*Commit:* ${{ github.sha }}\n*Triggered by:* ${{ github.actor }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"

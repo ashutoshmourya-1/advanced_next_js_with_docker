@@ -2,5 +2,5 @@
 
 set -e
 
-cd advanced_next_js
-pnpm lint
+pnpm --dir advanced_next_js lint
+pnpm --dir node_js lint
