@@ -11,7 +11,7 @@ export default async function Docker(): Promise<JSX.Element> {
   if (!res.ok) {
     return (
       <div className="text-red-600 m-auto">
-        Error occured: <span className="text-black">{res.error1.message}</span>
+        Error occured: <span className="text-black">{res.error.message}</span>
       </div>
     );
   }
