@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
 
+set -e
+
 cd advanced_next_js
 pnpm lint
