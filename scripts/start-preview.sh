@@ -240,6 +240,10 @@ for i in {1..30}; do
     echo "========================================"
     echo ""
 
+    if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+      echo "preview_url=http://${PREVIEW_HOST}" >> "$GITHUB_OUTPUT"
+    fi
+    
     exit 0
 
   fi
