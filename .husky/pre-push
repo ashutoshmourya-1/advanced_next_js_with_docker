@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+cd advanced_next_js
+pnpm build
+
+cd node_js
+pnpm build
