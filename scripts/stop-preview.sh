@@ -64,6 +64,10 @@ else
 
 fi
 
+echo "🗑️ Removing PR images..."
+
+docker image rm "pr-${PR_NUMBER}-next_js" "pr-${PR_NUMBER}-node_js" 2>/dev/null || true
+
 echo ""
 echo "========================================"
 echo " Preview removed"

@@ -36,6 +36,7 @@ app.use("/user", user_router);
 
 const server_start = (): void => {
   app.listen(process.env.PORT, () => {
+    // eslint-disable-next-line no-console
     console.log(`Server is running on port: ${process.env.PORT}`);
   });
 };
