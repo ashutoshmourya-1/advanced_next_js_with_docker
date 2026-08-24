@@ -4,6 +4,7 @@ import type { User } from "@type/user";
 
 const mock_users: User[] = [
   {
+    id: 10,
     name: "Aman Verma",
     email: "aman@test.com",
     phone_number: "9876543210",
@@ -11,6 +12,7 @@ const mock_users: User[] = [
     next_advance: false,
   },
   {
+    id: 11,
     name: "Priya Singh",
     email: "priya@test.com",
     phone_number: "",

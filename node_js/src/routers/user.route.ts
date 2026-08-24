@@ -5,7 +5,9 @@ const router = Router();
 
 const user_controller = new UserController();
 
-router.query?.("/", user_controller.get_users.bind(user_controller));
-router.post("/", user_controller.insert_user.bind(user_controller));
+router.get("/", user_controller.get_users);
+router.post("/", user_controller.insert_user);
+router.patch("/:id",user_controller.update_user);
+router.delete("/:id",user_controller.delete_user);
 
 export default router;

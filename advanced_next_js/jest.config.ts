@@ -1,9 +1,9 @@
-import type {Config} from 'jest';
-import nextJest from 'next/jest.js'
- 
+import type { Config } from "jest";
+import nextJest from "next/jest.js";
+
 const create_jest_config = nextJest({
-  dir: './',
-})
+  dir: "./",
+});
 
 const config: Config = {
   clearMocks: true,
@@ -24,13 +24,22 @@ const config: Config = {
 
   modulePathIgnorePatterns: ["<rootDir>/.next/"],
 
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
   testEnvironment: "jsdom",
+  transform: {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        useESM: true,
+        isolatedModules: true,
+      },
+    ],
+  },
 };
 
 const jest_config_fn = create_jest_config(config);
- 
+
 export default async (): Promise<Config> => {
   const resolved_config = await jest_config_fn();
   return {

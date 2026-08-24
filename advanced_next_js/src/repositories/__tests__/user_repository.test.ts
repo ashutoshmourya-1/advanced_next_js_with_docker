@@ -19,6 +19,7 @@ describe("UserRepository", () => {
 
   describe("insert_user_details", () => {
     const user = {
+      id:1,
       name: "Ashutosh",
       email: "ashutosh@example.com",
       phone_number: "9876543210",
@@ -108,6 +109,7 @@ describe("UserRepository", () => {
   describe("get_user_details", () => {
     const users = [
       {
+        id:1,
         name: "Ashutosh",
         email: "ashutosh@example.com",
         phone_number: "9876543210",
@@ -115,6 +117,7 @@ describe("UserRepository", () => {
         next_advance: false,
       },
       {
+        id:2,
         name: "Rahul",
         email: "rahul@example.com",
         phone_number: "9876543211",
@@ -205,6 +208,7 @@ describe("UserRepository", () => {
           ok: true,
           data: [
             {
+              id:1,
               name: "Ashutosh",
               email: "invalid-email",
               phone_number: "9876543210",

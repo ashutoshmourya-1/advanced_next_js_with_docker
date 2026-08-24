@@ -27,23 +27,14 @@ describe("UserDetailsForm", () => {
 
   it("should render the form when dialog is open", () => {
     render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
+      <UserDetailsForm open={true} onOpenChange={onOpenChange} data={null} />,
     );
 
-    expect(
-      screen.getByText("User Deatils Form"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("User Deatils Form")).toBeInTheDocument();
 
-    expect(
-      screen.getByPlaceholderText("Enter you name"),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter you name")).toBeInTheDocument();
 
-    expect(
-      screen.getByPlaceholderText("Enter you email"),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter you email")).toBeInTheDocument();
 
     expect(
       screen.getByPlaceholderText("Enter you phone number"),
@@ -59,24 +50,13 @@ describe("UserDetailsForm", () => {
   it("should allow user to enter form values", async () => {
     const user = userEvent.setup();
 
-    render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<UserDetailsForm open={true} onOpenChange={onOpenChange} data={null}/>);
 
-    const name_input = screen.getByPlaceholderText(
-      "Enter you name",
-    );
+    const name_input = screen.getByPlaceholderText("Enter you name");
 
-    const email_input = screen.getByPlaceholderText(
-      "Enter you email",
-    );
+    const email_input = screen.getByPlaceholderText("Enter you email");
 
-    const phone_input = screen.getByPlaceholderText(
-      "Enter you phone number",
-    );
+    const phone_input = screen.getByPlaceholderText("Enter you phone number");
 
     await user.type(name_input, "Ashutosh");
     await user.type(email_input, "ashutosh@example.com");
@@ -101,17 +81,9 @@ describe("UserDetailsForm", () => {
       },
     });
 
-    render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<UserDetailsForm open={true} onOpenChange={onOpenChange} data={null}/>);
 
-    await user.type(
-      screen.getByPlaceholderText("Enter you name"),
-      "Ashutosh",
-    );
+    await user.type(screen.getByPlaceholderText("Enter you name"), "Ashutosh");
 
     await user.type(
       screen.getByPlaceholderText("Enter you email"),
@@ -160,17 +132,9 @@ describe("UserDetailsForm", () => {
       },
     });
 
-    render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<UserDetailsForm open={true} onOpenChange={onOpenChange} data={null}/>);
 
-    await user.type(
-      screen.getByPlaceholderText("Enter you name"),
-      "Ashutosh",
-    );
+    await user.type(screen.getByPlaceholderText("Enter you name"), "Ashutosh");
 
     await user.type(
       screen.getByPlaceholderText("Enter you email"),
@@ -205,17 +169,9 @@ describe("UserDetailsForm", () => {
       },
     });
 
-    render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<UserDetailsForm open={true} onOpenChange={onOpenChange} data={null}/>);
 
-    await user.type(
-      screen.getByPlaceholderText("Enter you name"),
-      "Ashutosh",
-    );
+    await user.type(screen.getByPlaceholderText("Enter you name"), "Ashutosh");
 
     await user.type(
       screen.getByPlaceholderText("Enter you email"),
@@ -255,17 +211,9 @@ describe("UserDetailsForm", () => {
       },
     });
 
-    render(
-      <UserDetailsForm
-        open={true}
-        onOpenChange={onOpenChange}
-      />,
-    );
+    render(<UserDetailsForm open={true} onOpenChange={onOpenChange} data={null}/>);
 
-    await user.type(
-      screen.getByPlaceholderText("Enter you name"),
-      "Ashutosh",
-    );
+    await user.type(screen.getByPlaceholderText("Enter you name"), "Ashutosh");
 
     await user.type(
       screen.getByPlaceholderText("Enter you email"),

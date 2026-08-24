@@ -10,7 +10,7 @@ export default function DockerFormButton(): JSX.Element {
       <Button onClick={() => set_open(!open)}>
         Click Here To Fill Details
       </Button>
-      <UserDetailsForm open={open} onOpenChange={set_open} />
+      <UserDetailsForm open={open} onOpenChange={set_open} data={null} />
     </div>
   );
 }
