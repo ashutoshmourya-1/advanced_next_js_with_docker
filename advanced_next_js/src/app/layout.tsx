@@ -27,8 +27,10 @@ export default function RootLayout({
       lang="en"
       className={`${geist_sans.variable} ${geist_mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
-      <Toaster richColors={true}/>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Toaster richColors={true} />
+      </body>
     </html>
   );
 }

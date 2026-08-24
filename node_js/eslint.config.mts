@@ -1,44 +1,29 @@
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import pluginReactHooks from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
 import markdown from "@eslint/markdown";
-import css from "@eslint/css";
-import { defineConfig, globalIgnores } from "eslint/config";  
-import eslintReact from "@eslint-react/eslint-plugin";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
   {
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
     plugins: { js },
     extends: ["js/recommended"],
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      globals: { ...globals.node },
     },
   },
   tseslint.configs.recommended,
   {
-    ...pluginReactHooks.configs.flat["recommended-latest"],
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-  },
-  {
-    ...eslintReact.configs["recommended-type-checked"],
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-  },
-  {
-    files: ["**/*.{ts,mts,cts,tsx}"],
+    files: ["**/*.{ts,mts,cts}"],
     plugins: {
       "unused-imports": unusedImports,
     },
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
       },
-    },
-    settings: {
-      react: { version: "detect" },
     },
     rules: {
       "@typescript-eslint/naming-convention": [
@@ -70,25 +55,9 @@ export default defineConfig([
           trailingUnderscore: "forbid",
         },
         {
-          selector: ["variable", "function"],
-          filter: {
-            regex: "^(use|set)",
-            match: true,
-          },
-          format: ["camelCase", "snake_case"],
-        },
-        {
           selector: "variable",
           format: ["snake_case", "PascalCase", "UPPER_CASE"],
           leadingUnderscore: "allow",
-        },
-        {
-          selector: "variable",
-          filter: {
-            regex: "Ref$",
-            match: true,
-          },
-          format: ["camelCase"],
         },
 
         {
@@ -206,23 +175,12 @@ export default defineConfig([
       "no-param-reassign": ["error", { props: true }],
       "no-return-await": "error",
       "no-else-return": ["error", { allowElseIf: false }],
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-    },
-  },
-  {
-    files: ["**/*.tsx"],
-    rules: {
-      "@typescript-eslint/no-unsafe-assignment": "off",
     },
   },
 
   {
     files: [
       "*.config.{js,ts,mjs,cjs}",
-      "next.config.*",
-      "tailwind.config.*",
-      "postcss.config.*",
       "prettier.config.*",
     ],
     rules: {
@@ -250,33 +208,12 @@ export default defineConfig([
     extends: ["markdown/recommended"],
   },
 
-  {
-    files: ["**/*.css"],
-    plugins: { css },
-    language: "css/css",
-    extends: ["css/recommended"],
-    languageOptions: {
-      tolerant: true,
-    },
-    rules: {
-      "css/no-invalid-at-rules": "off",
-      "css/use-baseline": "off",
-      "css/no-important": "off",
-    },
-  },
   globalIgnores([
-    "coverage/**",
-    ".next/**",
-    "out/**",
+    "dist/**",
     "build/**",
     "eslint.config.mts",
-    "next-env.d.ts",
     "package.json",
-    "postcss.config.mjs",
     "pnpm-lock.yaml",
-    "pnpm-workspace.yaml",
-    "next.config.ts",
-    "next-env.d.ts",
     ".env.*",
     "README.md",
     "node_modules/**",

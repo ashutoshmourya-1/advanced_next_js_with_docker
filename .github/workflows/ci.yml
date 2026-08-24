@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: self-hosted
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - name: next_js
+            path: advanced_next_js
+          - name: node_js
+            path: node_js
+
+    name: CI (${{ matrix.project.name }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/setup@v2
+        with:
+          version: 11
+          runtime: node@24
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.project.path }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ${{ matrix.project.path }}
+        run: pnpm lint
+
+      - name: Test
+        working-directory: ${{ matrix.project.path }}
+        run: |
+          if grep -q '"test"' package.json; then
+            pnpm test
+          else
+            echo "No test script found, skipping."
+          fi
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚨 *CI Failed* (${{ matrix.project.name }})\n*Repo:* ${{ github.repository }}\n*PR:* #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}\n*Branch:* ${{ github.head_ref }}\n*Commit:* ${{ github.sha }}\n*Triggered by:* ${{ github.actor }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"

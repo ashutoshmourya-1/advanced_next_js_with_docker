@@ -8,7 +8,7 @@ import {
 import z from "zod";
 
 export default class UserRepository {
-  public async get_user_details(args?: User): Promise<Result<User[]>> {
+  public async get_user_details(args?: Partial<User>): Promise<Result<User[]>> {
     const res = await api_client.query("/user", args);
 
     const parsed_response = api_response_schema.safeParse(res.data);
