@@ -265,6 +265,7 @@ export default defineConfig([
     },
   },
   globalIgnores([
+    "coverage/**",
     ".next/**",
     "out/**",
     "build/**",
