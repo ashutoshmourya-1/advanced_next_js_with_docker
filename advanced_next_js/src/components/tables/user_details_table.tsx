@@ -23,7 +23,7 @@ const columns = column_helper.columns([
   }),
   column_helper.accessor("phone_number", {
     header: "Phone Number",
-    cell: (info) => <strong>{info.row.original.phone_number ?? "-"}</strong>,
+    cell: (info) => <strong>{info.row.original.phone_number || "-"}</strong>,
   }),
   column_helper.accessor("next_basic", {
     header: "Next Js Basic Concepts Completed",

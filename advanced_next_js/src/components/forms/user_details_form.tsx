@@ -9,6 +9,8 @@ import { Checkbox } from "@components/ui/checkbox";
 import { Button } from "@components/ui/button";
 import { insert_user_action } from "@actions/user.actions";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { user_schema } from "@type/index";
 
 export default function UserDetailsForm({
   onOpenChange,
@@ -29,7 +31,8 @@ export default function UserDetailsForm({
     onSubmit: async ({ value }): Promise<void> => {
       const response = await insert_user_action(value);
       if (!response.ok) {
-        throw new Error(response.error.message);
+        toast.error(response.error.message);
+        return;
       }
       onOpenChange(false);
       form.reset();
@@ -52,7 +55,18 @@ export default function UserDetailsForm({
             className="p-10"
           >
             <div className="flex flex-col gap-10 mb-8 md:flex-row">
-              <form.Field name="name">
+              <form.Field
+                name="name"
+                validators={{
+                  onChange: ({ value }) => {
+                    const res = user_schema.shape.name.safeParse(value);
+                    if (!res.success) {
+                      return res.error.issues.map((e) => e.message).join(", ");
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="flex gap-2">
                     <Label htmlFor={field.name} className="font-bold">
@@ -71,7 +85,18 @@ export default function UserDetailsForm({
                   </div>
                 )}
               </form.Field>
-              <form.Field name="email">
+              <form.Field
+                name="email"
+                validators={{
+                  onChange: ({ value }) => {
+                    const res = user_schema.shape.email.safeParse(value);
+                    if (!res.success) {
+                      return res.error.issues.map((e) => e.message).join(", ");
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="flex gap-2">
                     <Label htmlFor={field.name} className="font-bold">
@@ -93,7 +118,18 @@ export default function UserDetailsForm({
               </form.Field>
             </div>
             <div className="mb-8">
-              <form.Field name="phone_number">
+              <form.Field
+                name="phone_number"
+                validators={{
+                  onChange: ({ value }) => {
+                    const res = user_schema.shape.phone_number.safeParse(value);
+                    if (!res.success) {
+                      return res.error.issues.map((e) => e.message).join(", ");
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="flex gap-2">
                     <Label htmlFor={field.name} className="font-bold">
@@ -115,7 +151,18 @@ export default function UserDetailsForm({
               </form.Field>
             </div>
             <div className="flex flex-col gap-10 mb-4 md:flex-row">
-              <form.Field name="next_basic">
+              <form.Field
+                name="next_basic"
+                validators={{
+                  onChange: ({ value }) => {
+                    const res = user_schema.shape.next_basic.safeParse(value);
+                    if (!res.success) {
+                      return res.error.issues.map((e) => e.message).join(", ");
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="flex gap-2">
                     <Label htmlFor={field.name} className="font-bold">
@@ -132,7 +179,18 @@ export default function UserDetailsForm({
                   </div>
                 )}
               </form.Field>
-              <form.Field name="next_advance">
+              <form.Field
+                name="next_advance"
+                validators={{
+                  onChange: ({ value }) => {
+                    const res = user_schema.shape.next_advance.safeParse(value);
+                    if (!res.success) {
+                      return res.error.issues.map((e) => e.message).join(", ");
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="flex gap-2">
                     <Label htmlFor={field.name} className="font-bold">
