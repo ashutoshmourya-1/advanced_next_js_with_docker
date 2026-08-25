@@ -12,6 +12,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["jest","node"],
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true

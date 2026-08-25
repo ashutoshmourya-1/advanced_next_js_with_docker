@@ -7,32 +7,43 @@ import { Input } from "@base-ui/react";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { Button } from "@components/ui/button";
-import { insert_user_action } from "@actions/user.actions";
+import { insert_user_action, update_user_action } from "@actions/user.actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { user_schema } from "@type/index";
+import { type User, user_schema } from "@type/index";
 
 export default function UserDetailsForm({
+  data,
   onOpenChange,
   open,
 }: {
+  data: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }): JSX.Element {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
-      name: "",
-      email: "",
-      phone_number: "",
-      next_advance: false,
-      next_basic: false,
+      id: data?.id ?? 0,
+      name: data?.name ?? "",
+      email: data?.email ?? "",
+      phone_number: data?.phone_number ?? "",
+      next_advance: data?.next_advance ?? false,
+      next_basic: data?.next_basic ?? false,
     },
     onSubmit: async ({ value }): Promise<void> => {
-      const response = await insert_user_action(value);
-      if (!response.ok) {
-        toast.error(response.error.message);
-        return;
+      if (data?.id) {
+        const response = await update_user_action(value);
+        if (!response.ok) {
+          toast.error(response.error.message);
+          return;
+        }
+      } else {
+        const response = await insert_user_action(value);
+        if (!response.ok) {
+          toast.error(response.error.message);
+          return;
+        }
       }
       onOpenChange(false);
       form.reset();
@@ -171,6 +182,7 @@ export default function UserDetailsForm({
                     <Checkbox
                       name={field.name}
                       className="p-3"
+                      checked={field.state.value}
                       onCheckedChange={(checked) => field.handleChange(checked)}
                     />
                     {field.state.meta.errors.map((e) => (
@@ -198,6 +210,7 @@ export default function UserDetailsForm({
                     </Label>
                     <Checkbox
                       name={field.name}
+                      checked={field.state.value}
                       className="p-3"
                       onCheckedChange={(checked) => field.handleChange(checked)}
                     />

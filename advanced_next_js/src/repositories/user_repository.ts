@@ -8,8 +8,10 @@ import {
 import z from "zod";
 
 export default class UserRepository {
-  public async get_user_details(args?: Partial<User>): Promise<Result<User[]>> {
-    const res = await api_client.query("/user", args);
+  public async get_user_details(
+    _args?: Partial<User>,
+  ): Promise<Result<User[]>> {
+    const res = await api_client.get("/user");
 
     const parsed_response = api_response_schema.safeParse(res.data);
 
@@ -86,5 +88,72 @@ export default class UserRepository {
     }
 
     return { ok: true, data: parsed_data.data };
+  }
+
+  public async update_user_details(args: User): Promise<Result<User>> {
+    const res = await api_client.patch(`/user/${args.id}`, args);
+
+    const parsed_response = api_response_schema.safeParse(res.data);
+
+    if (!parsed_response.success) {
+      return {
+        ok: false,
+        error: {
+          message: parsed_response.error.issues
+            .map((e) => e.message)
+            .join(", "),
+        },
+      };
+    }
+
+    if (!parsed_response.data?.ok) {
+      return {
+        ok: false,
+        error: {
+          message: parsed_response.data.error?.message ?? "Parsing failed",
+        },
+      };
+    }
+
+    const parsed_data = user_schema.safeParse(parsed_response.data.data);
+
+    if (!parsed_data.success) {
+      return {
+        ok: false,
+        error: {
+          message: parsed_data.error.issues.map((e) => e.message).join(" ,"),
+        },
+      };
+    }
+
+    return { ok: true, data: parsed_data.data };
+  }
+
+  public async delete_user_details(args: User): Promise<Result<void>> {
+    const res = await api_client.delete(`/user/${args.id}`);
+
+    const parsed_response = api_response_schema.safeParse(res.data);
+
+    if (!parsed_response.success) {
+      return {
+        ok: false,
+        error: {
+          message: parsed_response.error.issues
+            .map((e) => e.message)
+            .join(", "),
+        },
+      };
+    }
+
+    if (!parsed_response.data?.ok) {
+      return {
+        ok: false,
+        error: {
+          message: parsed_response.data.error?.message ?? "Parsing failed",
+        },
+      };
+    }
+
+    return { ok: true, data: undefined };
   }
 }

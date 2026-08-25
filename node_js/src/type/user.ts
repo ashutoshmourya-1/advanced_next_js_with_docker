@@ -9,4 +9,4 @@ export const user_schema = z.object({
   next_advance: z.boolean(),
 });
 
-export type User = z.infer<typeof user_schema>
+export type User = z.infer<typeof user_schema>;

@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   ci:
@@ -60,5 +61,113 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
             --data "{
               \"text\": \"🚨 *CI Failed* (${{ matrix.project.name }})\n*Repo:* ${{ github.repository }}\n*PR:* #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}\n*Branch:* ${{ github.head_ref }}\n*Commit:* ${{ github.sha }}\n*Triggered by:* ${{ github.actor }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
+
+  preview:
+    name: Preview Deployment
+    needs: ci
+
+    if: ${{ needs.ci.result == 'success' }}
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set-up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install pnpm and Node.js
+        uses: pnpm/setup@v2
+        with:
+          version: 11
+          runtime: node@24
+
+      - name: Generate .env files
+        run: |
+          cat > advanced_next_js/.env <<EOF
+          NEXT_PUBLIC_BACKEND_API_URL=${{ secrets.NEXT_PUBLIC_BACKEND_API_URL }}
+          NEXT_PUBLIC_PORT=${{ secrets.NEXT_PUBLIC_PORT }}
+          EOF
+
+          cat > node_js/.env <<EOF
+          PORT=${{ secrets.PORT }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/${{ secrets.POSTGRES_DB }}
+          EOF
+
+          cat > .env <<EOF
+          NEXT_JS_PORT=${{ secrets.NEXT_JS_PORT }}
+          NODE_JS_PORT=${{ secrets.NODE_JS_PORT }}
+          CADDY_PORT=${{ secrets.CADDY_PORT }}
+          CADDY_PORT_2=${{ secrets.CADDY_PORT_2 }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          EOF
+
+      - name: Start PR preview
+        id: preview
+        run: |
+          chmod +x ./scripts/start-preview.sh
+
+          ./scripts/start-preview.sh \
+            "${{ github.event.pull_request.number }}"
+
+      - name: Comment preview URL on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.preview.outputs.preview_url }}";
+            const prNumber = context.payload.pull_request.number;
+
+            const comment = `🚀 **Preview deployed!**
+
+            🔗 [${url}](${url})`;
+
+            const { data: comments } =
+              await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+
+            const existing = comments.find(
+              c =>
+                c.body.includes("Preview deployed!") &&
+                c.user.type === "Bot"
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment,
+              });
+            }
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"🚨 *Preview Deployment Failed*\n*Repo:* ${{ github.repository }}\n*PR:* #${{ github.event.pull_request.number }}\n*Commit:* ${{ github.sha }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
             }" \
             "${{ secrets.SLACK_WEBHOOK_URL }}"
