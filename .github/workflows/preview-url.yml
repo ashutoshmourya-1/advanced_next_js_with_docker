@@ -1,19 +1,28 @@
-name: Preview Depolyment
+name: Preview Deployment
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
 
 permissions:
+  contents: read
   pull-requests: write
 
 jobs:
   preview:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+
     runs-on: self-hosted
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set-up Node
         uses: actions/setup-node@v7
@@ -25,6 +34,22 @@ jobs:
         with:
           version: 11
           runtime: node@24
+
+      - name: Get PR information
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh api \
+            repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls \
+            --jq '.[0].number' | head -n 1)
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Could not find PR for commit"
+            exit 1
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Generate .env files
         run: |
@@ -57,7 +82,7 @@ jobs:
         id: preview
         run: |
           chmod +x ./scripts/start-preview.sh
-          ./scripts/start-preview.sh "${{ github.event.pull_request.number }}"
+          ./scripts/start-preview.sh "${{ steps.pr.outputs.pr_number }}"
 
       - name: Comment preview URL on PR
         if: success()
@@ -65,18 +90,23 @@ jobs:
         with:
           script: |
             const url = "${{ steps.preview.outputs.preview_url }}";
-            const prNumber = context.payload.pull_request.number;
+            const prNumber = Number("${{ steps.pr.outputs.pr_number }}");
 
-            const comment = `🚀 **Preview deployed!**\n\n🔗 [${url}](${url})`;
+            const comment = `🚀 **Preview deployed!**
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
+            🔗 [${url}](${url})`;
 
-            const existing = comments.find(c =>
-              c.body.includes("Preview deployed!") && c.user.type === "Bot"
+            const { data: comments } =
+              await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+
+            const existing = comments.find(
+              c =>
+                c.body.includes("Preview deployed!") &&
+                c.user.type === "Bot"
             );
 
             if (existing) {
@@ -100,6 +130,6 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
             --data "{
-              \"text\": \"🚨 *Pipeline Failed*\n*Repo:* ${{ github.repository }}\n*Workflow:* ${{ github.workflow }}\n*Branch/PR:* #${{ github.event.pull_request.number }}\n*Commit:* ${{ github.sha }}\n*Triggered by:* ${{ github.actor }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+              \"text\": \"🚨 *Preview Deployment Failed*\n*Repo:* ${{ github.repository }}\n*Workflow:* ${{ github.workflow }}\n*Commit:* ${{ github.event.workflow_run.head_sha }}\n*Logs:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
             }" \
             "${{ secrets.SLACK_WEBHOOK_URL }}"
