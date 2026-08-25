@@ -11,3 +11,5 @@ Docker volumes/
 actions-runner/
 
 .secrets
+
+preview-url.yml
