@@ -1,231 +1,178 @@
 import UserRepository from "../user_repository";
 import { api_client } from "@lib/axios-client";
+import type { User } from "@type/index";
 
 jest.mock("@lib/axios-client", () => ({
   api_client: {
-    query: jest.fn(),
+    get: jest.fn(),
     post: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
   },
 }));
+
+const mocked_get = api_client.get as jest.Mock;
+const mocked_post = api_client.post as jest.Mock;
+const mocked_patch = api_client.patch as jest.Mock;
+const mocked_delete = api_client.delete as jest.Mock;
 
 describe("UserRepository", () => {
   let repository: UserRepository;
 
+  const user: User = {
+    id: 1,
+    name: "Ashutosh",
+    email: "ashutosh@example.com",
+    phone_number: "9876543210",
+    next_basic: true,
+    next_advance: false,
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-
     repository = new UserRepository();
   });
 
-  describe("insert_user_details", () => {
-    const user = {
-      id:1,
-      name: "Ashutosh",
-      email: "ashutosh@example.com",
-      phone_number: "9876543210",
-      next_basic: true,
-      next_advance: false,
-    };
-
-    it("should insert user successfully", async () => {
-      (api_client.post as jest.Mock).mockResolvedValue({
-        data: {
-          ok: true,
-          data: user,
-        },
+  describe("get_user_details", () => {
+    it("should get users successfully", async () => {
+      mocked_get.mockResolvedValue({
+        data: { ok: true, data: [user] },
       });
 
-      const result = await repository.insert_user_details(user);
+      const result = await repository.get_user_details();
 
-      expect(api_client.post).toHaveBeenCalledTimes(1);
-      expect(api_client.post).toHaveBeenCalledWith("/user", user);
-
-      expect(result).toEqual({
-        ok: true,
-        data: user,
-      });
+      expect(mocked_get).toHaveBeenCalledWith("/user");
+      expect(result).toEqual({ ok: true, data: [user] });
     });
 
-    it("should return error when API response is invalid", async () => {
-      (api_client.post as jest.Mock).mockResolvedValue({
-        data: {
-          invalid: "response",
-        },
+    it("should return error when the response envelope fails schema validation", async () => {
+      mocked_get.mockResolvedValue({
+        data: { invalid: "response" },
       });
 
-      const result = await repository.insert_user_details(user);
+      const result = await repository.get_user_details();
 
       expect(result.ok).toBe(false);
-
       if (!result.ok) {
         expect(result.error.message).toBeTruthy();
       }
     });
 
-    it("should return API error when API returns ok false", async () => {
-      (api_client.post as jest.Mock).mockResolvedValue({
-        data: {
-          ok: false,
-          error: {
-            message: "User already exists",
-          },
-        },
+    it("should return API error when API returns ok:false", async () => {
+      mocked_get.mockResolvedValue({
+        data: { ok: false, error: { message: "Unable to fetch users" } },
       });
 
-      const result = await repository.insert_user_details(user);
+      const result = await repository.get_user_details();
 
       expect(result).toEqual({
         ok: false,
-        error: {
-          message: "User already exists",
-        },
+        error: { message: "Unable to fetch users" },
       });
     });
 
-    it("should return parsing error when returned user is invalid", async () => {
-      (api_client.post as jest.Mock).mockResolvedValue({
+    it("should return a parsing error when a user in the array is invalid", async () => {
+      mocked_get.mockResolvedValue({
         data: {
           ok: true,
-          data: {
-            name: "Ashutosh",
-            email: "invalid-email",
-            phone_number: "9876543210",
-            next_basic: true,
-            next_advance: false,
-          },
+          data: [{ ...user, email: "invalid-email" }],
         },
       });
 
-      const result = await repository.insert_user_details(user);
+      const result = await repository.get_user_details();
 
       expect(result.ok).toBe(false);
-
       if (!result.ok) {
         expect(result.error.message).toBeTruthy();
       }
     });
   });
 
-  describe("get_user_details", () => {
-    const users = [
-      {
-        id:1,
-        name: "Ashutosh",
-        email: "ashutosh@example.com",
-        phone_number: "9876543210",
-        next_basic: true,
-        next_advance: false,
-      },
-      {
-        id:2,
-        name: "Rahul",
-        email: "rahul@example.com",
-        phone_number: "9876543211",
-        next_basic: false,
-        next_advance: true,
-      },
-    ];
-
-    it("should get users successfully", async () => {
-      (api_client.query as jest.Mock).mockResolvedValue({
-        data: {
-          ok: true,
-          data: users,
-        },
+  describe("insert_user_details", () => {
+    it("should insert a user successfully", async () => {
+      mocked_post.mockResolvedValue({
+        data: { ok: true, data: user },
       });
 
-      const result = await repository.get_user_details();
+      const result = await repository.insert_user_details(user);
 
-      expect(api_client.query).toHaveBeenCalledTimes(1);
-      expect(api_client.query).toHaveBeenCalledWith("/user", undefined);
-
-      expect(result).toEqual({
-        ok: true,
-        data: users,
-      });
+      expect(mocked_post).toHaveBeenCalledWith("/user", user);
+      expect(result).toEqual({ ok: true, data: user });
     });
 
-    it("should pass filters to API", async () => {
-      const filter = {
-        name: "Ashutosh",
-        
-      };
-
-      (api_client.query as jest.Mock).mockResolvedValue({
-        data: {
-          ok: true,
-          data: users,
-        },
+    it("should return API error when insert fails", async () => {
+      mocked_post.mockResolvedValue({
+        data: { ok: false, error: { message: "Duplicate email" } },
       });
 
-      await repository.get_user_details(filter);
-
-      expect(api_client.query).toHaveBeenCalledWith(
-        "/user",
-        filter,
-      );
-    });
-
-    it("should return error when API response is invalid", async () => {
-      (api_client.query as jest.Mock).mockResolvedValue({
-        data: {
-          invalid: "response",
-        },
-      });
-
-      const result = await repository.get_user_details();
-
-      expect(result.ok).toBe(false);
-
-      if (!result.ok) {
-        expect(result.error.message).toBeTruthy();
-      }
-    });
-
-    it("should return API error when API returns ok false", async () => {
-      (api_client.query as jest.Mock).mockResolvedValue({
-        data: {
-          ok: false,
-          error: {
-            message: "Unable to fetch users",
-          },
-        },
-      });
-
-      const result = await repository.get_user_details();
+      const result = await repository.insert_user_details(user);
 
       expect(result).toEqual({
         ok: false,
-        error: {
-          message: "Unable to fetch users",
-        },
+        error: { message: "Duplicate email" },
       });
     });
 
-    it("should return parsing error when user array is invalid", async () => {
-      (api_client.query as jest.Mock).mockResolvedValue({
-        data: {
-          ok: true,
-          data: [
-            {
-              id:1,
-              name: "Ashutosh",
-              email: "invalid-email",
-              phone_number: "9876543210",
-              next_basic: true,
-              next_advance: false,
-            },
-          ],
-        },
+    it("should return a parsing error when the inserted user is invalid", async () => {
+      mocked_post.mockResolvedValue({
+        data: { ok: true, data: { ...user, email: "invalid-email" } },
       });
 
-      const result = await repository.get_user_details();
+      const result = await repository.insert_user_details(user);
 
       expect(result.ok).toBe(false);
+    });
+  });
 
-      if (!result.ok) {
-        expect(result.error.message).toBeTruthy();
-      }
+  describe("update_user_details", () => {
+    it("should update a user successfully", async () => {
+      mocked_patch.mockResolvedValue({
+        data: { ok: true, data: user },
+      });
+
+      const result = await repository.update_user_details(user);
+
+      expect(mocked_patch).toHaveBeenCalledWith(`/user/${user.id}`, user);
+      expect(result).toEqual({ ok: true, data: user });
+    });
+
+    it("should return API error when update fails", async () => {
+      mocked_patch.mockResolvedValue({
+        data: { ok: false, error: { message: "User not found" } },
+      });
+
+      const result = await repository.update_user_details(user);
+
+      expect(result).toEqual({
+        ok: false,
+        error: { message: "User not found" },
+      });
+    });
+  });
+
+  describe("delete_user_details", () => {
+    it("should delete a user successfully", async () => {
+      mocked_delete.mockResolvedValue({
+        data: { ok: true },
+      });
+
+      const result = await repository.delete_user_details(user);
+
+      expect(mocked_delete).toHaveBeenCalledWith(`/user/${user.id}`);
+      expect(result).toEqual({ ok: true, data: undefined });
+    });
+
+    it("should return API error when delete fails", async () => {
+      mocked_delete.mockResolvedValue({
+        data: { ok: false, error: { message: "User not found" } },
+      });
+
+      const result = await repository.delete_user_details(user);
+
+      expect(result).toEqual({
+        ok: false,
+        error: { message: "User not found" },
+      });
     });
   });
 });

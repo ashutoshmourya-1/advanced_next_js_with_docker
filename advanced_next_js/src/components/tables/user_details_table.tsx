@@ -92,10 +92,10 @@ export default function UserDetailsTable({
               const res = await delete_user_action(info.row.original);
               if (!res.ok) {
                 toast.error(res.error.message);
-                router.refresh();
                 return;
               }
               toast.success("User deleted sucessfully");
+              router.refresh();
             }}
           >
             <Trash className="size-4 text-red-400"/>

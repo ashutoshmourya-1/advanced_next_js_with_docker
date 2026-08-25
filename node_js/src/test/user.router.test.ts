@@ -11,8 +11,6 @@ jest.mock("../config/database.js", () => ({
 
 const mocked_pool_query = pool.query as jest.Mock;
 
-// ASSUMPTION: adjust this to match your actual `user_schema` shape in
-// src/type/index.ts if it differs (e.g. different field names/types).
 const db_user_row = {
   id: 1,
   name: "Aman Verma",
