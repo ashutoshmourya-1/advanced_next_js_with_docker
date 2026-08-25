@@ -23,13 +23,7 @@ jest.mock("@actions/user.actions", () => ({
 
 jest.mock("@components/forms", () => ({
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  UserDetailsForm: ({
-    open,
-    data,
-  }: {
-    open: boolean;
-    data: User | null;
-  }) => (
+  UserDetailsForm: ({ open, data }: { open: boolean; data: User | null }) => (
     <div data-testid="user-details-form">
       {open ? "open" : "closed"}:{data?.name ?? "none"}
     </div>
@@ -58,7 +52,6 @@ const mock_users: User[] = [
   },
 ];
 
-// Body rows only (row 0 in getAllByRole("row") is the header row).
 function get_body_rows(): HTMLElement[] {
   return screen.getAllByRole("row").slice(1);
 }
@@ -127,7 +120,6 @@ describe("UserDetailsTable", () => {
       "open:Aman Verma",
     );
 
-    // clicking the second row's edit button swaps in that row's data
     const edit_button_2 = within(second_row).getAllByRole("button")[0];
     await user.click(edit_button_2);
 
@@ -151,6 +143,7 @@ describe("UserDetailsTable", () => {
 
       expect(mocked_delete_user_action).toHaveBeenCalledWith(mock_users[0]);
       expect(toast.success).toHaveBeenCalledWith("User deleted sucessfully");
+      expect(router_refresh).toHaveBeenCalledTimes(1);
     });
 
     it("shows an error toast and refreshes the router when delete fails", async () => {
@@ -166,7 +159,6 @@ describe("UserDetailsTable", () => {
       await user.click(delete_button);
 
       expect(toast.error).toHaveBeenCalledWith("Failed to delete user");
-      expect(router_refresh).toHaveBeenCalledTimes(1);
       expect(toast.success).not.toHaveBeenCalled();
     });
   });

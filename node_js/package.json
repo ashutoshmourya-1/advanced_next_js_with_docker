@@ -9,6 +9,11 @@
     "lint": "eslint",
     "test": "pnpm exec jest"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "unrs-resolver"
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
