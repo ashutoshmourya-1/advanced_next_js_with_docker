@@ -1,7 +1,7 @@
 ```bash
 #!/usr/bin/env bash
 
-set -uo pipefail
+set -u
 
 PR_NUMBER="${1:-}"
 
