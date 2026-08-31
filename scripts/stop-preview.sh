@@ -1,6 +1,7 @@
+```bash
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
 
 PR_NUMBER="${1:-}"
 
@@ -18,6 +19,11 @@ echo "========================================"
 echo "🧹 Cleaning Preview PR #${PR_NUMBER}"
 echo "========================================"
 
+
+# ============================================================
+# STEP 1 — REMOVE CADDY ROUTE
+# ============================================================
+
 echo ""
 echo "🔀 Step 1: Removing Caddy route..."
 
@@ -33,16 +39,22 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
       echo "🗑️ Removing route: ${CADDY_ROUTE_ID}"
 
-      curl -fsS \
+      if curl -fsS \
         -X DELETE \
         "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
-        >/dev/null
+        >/dev/null 2>&1; then
 
-      echo "✓ Caddy route removed"
+        echo "✓ Caddy route removed"
+
+      else
+
+        echo "⚠️ Failed to remove Caddy route"
+
+      fi
 
     else
 
-      echo "ℹ️ Caddy route ${CADDY_ROUTE_ID} does not exist"
+      echo "✓ Caddy route ${CADDY_ROUTE_ID} does not exist"
 
     fi
 
@@ -61,6 +73,10 @@ else
 fi
 
 
+# ============================================================
+# STEP 2 — VERIFY CADDY ROUTE
+# ============================================================
+
 echo ""
 echo "🔍 Step 2: Verifying Caddy route cleanup..."
 
@@ -70,12 +86,11 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
     "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
     >/dev/null 2>&1; then
 
-    echo "❌ Caddy route still exists!"
-    echo "   Refusing to continue silently."
+    echo "❌ Caddy route STILL EXISTS"
 
     curl -s \
       "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
-      | jq . || true
+      | jq . 2>/dev/null || true
 
     exit 1
 
@@ -85,23 +100,34 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
   fi
 
+else
+
+  echo "✓ Caddy is not running; route cannot exist"
+
 fi
+
+
+# ============================================================
+# STEP 3 — REMOVE DOCKER COMPOSE STACK
+# ============================================================
 
 echo ""
 echo "🐳 Step 3: Removing PR Docker stack..."
 
-if docker compose \
+docker compose \
   -p "$PROJECT_NAME" \
   down \
   --remove-orphans \
-  --volumes; then
+  --volumes \
+  --timeout 10 \
+  >/dev/null 2>&1 || true
 
-  echo "✓ PR containers/network/volumes removed"
+echo "✓ Compose cleanup completed"
 
-else
 
-  echo "⚠️ Compose cleanup returned non-zero"
-fi
+# ============================================================
+# STEP 4 — REMOVE LEFTOVER CONTAINERS
+# ============================================================
 
 echo ""
 echo "🧨 Step 4: Removing leftover PR containers..."
@@ -114,7 +140,24 @@ LEFTOVER_CONTAINERS="$(
 
 if [[ -n "$LEFTOVER_CONTAINERS" ]]; then
 
-  docker rm -f $LEFTOVER_CONTAINERS
+  echo "$LEFTOVER_CONTAINERS" | while read -r CONTAINER_ID; do
+
+    [[ -z "$CONTAINER_ID" ]] && continue
+
+    CONTAINER_NAME="$(
+      docker inspect \
+        --format '{{.Name}}' \
+        "$CONTAINER_ID" \
+        2>/dev/null \
+        | sed 's#^/##' \
+        || true
+    )"
+
+    echo "🗑️ Removing container: ${CONTAINER_NAME:-$CONTAINER_ID}"
+
+    docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+
+  done
 
   echo "✓ Leftover PR containers removed"
 
@@ -125,22 +168,32 @@ else
 fi
 
 
+# ============================================================
+# STEP 5 — REMOVE LEFTOVER NETWORKS
+# ============================================================
+
 echo ""
 echo "🌐 Step 5: Removing leftover PR networks..."
 
 PR_NETWORKS="$(
   docker network ls \
     --format '{{.Name}}' \
+    2>/dev/null \
     | grep -E "^${PROJECT_NAME}_" \
     || true
 )"
 
 if [[ -n "$PR_NETWORKS" ]]; then
 
-  echo "$PR_NETWORKS" | while read -r NETWORK; do
+  while read -r NETWORK; do
+
+    [[ -z "$NETWORK" ]] && continue
+
     echo "🗑️ Removing network: $NETWORK"
+
     docker network rm "$NETWORK" >/dev/null 2>&1 || true
-  done
+
+  done <<< "$PR_NETWORKS"
 
   echo "✓ PR networks cleaned"
 
@@ -150,22 +203,35 @@ else
 
 fi
 
+
+# ============================================================
+# STEP 6 — REMOVE PR IMAGES
+# ============================================================
+
 echo ""
 echo "🖼️ Step 6: Removing PR images..."
 
 PR_IMAGES="$(
   docker images \
     --format '{{.Repository}}:{{.Tag}}' \
+    2>/dev/null \
     | grep -E "^${PROJECT_NAME}-" \
     || true
 )"
 
 if [[ -n "$PR_IMAGES" ]]; then
 
-  echo "$PR_IMAGES" | while read -r IMAGE; do
+  while read -r IMAGE; do
+
+    [[ -z "$IMAGE" ]] && continue
+
     echo "🗑️ Removing image: $IMAGE"
-    docker image rm -f "$IMAGE" >/dev/null 2>&1 || true
-  done
+
+    docker image rm -f "$IMAGE" >/dev/null 2>&1 || {
+      echo "⚠️ Could not remove image: $IMAGE"
+    }
+
+  done <<< "$PR_IMAGES"
 
 else
 
@@ -173,27 +239,47 @@ else
 
 fi
 
+
+# ============================================================
+# STEP 7 — REMOVE PR IMAGE IDs
+# ============================================================
+
 echo ""
 echo "🔎 Step 7: Checking leftover PR image IDs..."
 
 PR_IMAGE_IDS="$(
   docker images -aq \
+    2>/dev/null \
     | while read -r IMAGE_ID; do
+
+        [[ -z "$IMAGE_ID" ]] && continue
+
         docker inspect \
           --format '{{join .RepoTags "\n"}}' \
-          "$IMAGE_ID" 2>/dev/null \
+          "$IMAGE_ID" \
+          2>/dev/null \
           | grep -E "^${PROJECT_NAME}-" \
-          >/dev/null \
+          >/dev/null 2>&1 \
           && echo "$IMAGE_ID"
+
       done \
-    | sort -u
+    | sort -u \
+    || true
 )"
 
 if [[ -n "$PR_IMAGE_IDS" ]]; then
 
-  docker image rm -f $PR_IMAGE_IDS >/dev/null 2>&1 || true
+  while read -r IMAGE_ID; do
 
-  echo "✓ Leftover PR images removed"
+    [[ -z "$IMAGE_ID" ]] && continue
+
+    echo "🗑️ Removing leftover image ID: $IMAGE_ID"
+
+    docker image rm -f "$IMAGE_ID" >/dev/null 2>&1 || {
+      echo "⚠️ Could not remove image ID: $IMAGE_ID"
+    }
+
+  done <<< "$PR_IMAGE_IDS"
 
 else
 
@@ -201,22 +287,35 @@ else
 
 fi
 
+
+# ============================================================
+# STEP 8 — REMOVE PR VOLUMES
+# ============================================================
+
 echo ""
 echo "💾 Step 8: Removing leftover PR volumes..."
 
 PR_VOLUMES="$(
   docker volume ls \
     --format '{{.Name}}' \
+    2>/dev/null \
     | grep -E "^${PROJECT_NAME}_" \
     || true
 )"
 
 if [[ -n "$PR_VOLUMES" ]]; then
 
-  echo "$PR_VOLUMES" | while read -r VOLUME; do
+  while read -r VOLUME; do
+
+    [[ -z "$VOLUME" ]] && continue
+
     echo "🗑️ Removing volume: $VOLUME"
-    docker volume rm "$VOLUME" >/dev/null 2>&1 || true
-  done
+
+    docker volume rm "$VOLUME" >/dev/null 2>&1 || {
+      echo "⚠️ Could not remove volume: $VOLUME"
+    }
+
+  done <<< "$PR_VOLUMES"
 
   echo "✓ PR volumes cleaned"
 
@@ -226,6 +325,10 @@ else
 
 fi
 
+
+# ============================================================
+# STEP 9 — REMOVE DANGLING ARTIFACTS
+# ============================================================
 
 echo ""
 echo "🧽 Step 9: Removing dangling Docker artifacts..."
@@ -237,16 +340,38 @@ docker network prune -f >/dev/null 2>&1 || true
 echo "✓ Dangling Docker artifacts cleaned"
 
 
+# ============================================================
+# STEP 10 — FINAL VERIFICATION
+# ============================================================
+
 echo ""
 echo "🔍 Step 10: Final verification..."
 
+
+CLEANUP_FAILED=0
+
+
+# ----------------------------
+# Containers
+# ----------------------------
+
 echo ""
 echo "Containers:"
-if docker ps -a \
-  --format '{{.Names}}' \
-  | grep -E "^${PROJECT_NAME}-" ; then
 
-  echo "❌ PR containers still exist"
+REMAINING_CONTAINERS="$(
+  docker ps -a \
+    --format '{{.Names}}' \
+    2>/dev/null \
+    | grep -E "^${PROJECT_NAME}-" \
+    || true
+)"
+
+if [[ -n "$REMAINING_CONTAINERS" ]]; then
+
+  echo "❌ PR containers still exist:"
+  echo "$REMAINING_CONTAINERS"
+
+  CLEANUP_FAILED=1
 
 else
 
@@ -255,13 +380,27 @@ else
 fi
 
 
+# ----------------------------
+# Images
+# ----------------------------
+
 echo ""
 echo "Images:"
-if docker images \
-  --format '{{.Repository}}:{{.Tag}}' \
-  | grep -E "^${PROJECT_NAME}-" ; then
 
-  echo "❌ PR images still exist"
+REMAINING_IMAGES="$(
+  docker images \
+    --format '{{.Repository}}:{{.Tag}}' \
+    2>/dev/null \
+    | grep -E "^${PROJECT_NAME}-" \
+    || true
+)"
+
+if [[ -n "$REMAINING_IMAGES" ]]; then
+
+  echo "❌ PR images still exist:"
+  echo "$REMAINING_IMAGES"
+
+  CLEANUP_FAILED=1
 
 else
 
@@ -270,13 +409,27 @@ else
 fi
 
 
+# ----------------------------
+# Networks
+# ----------------------------
+
 echo ""
 echo "Networks:"
-if docker network ls \
-  --format '{{.Name}}' \
-  | grep -E "^${PROJECT_NAME}_" ; then
 
-  echo "❌ PR networks still exist"
+REMAINING_NETWORKS="$(
+  docker network ls \
+    --format '{{.Name}}' \
+    2>/dev/null \
+    | grep -E "^${PROJECT_NAME}_" \
+    || true
+)"
+
+if [[ -n "$REMAINING_NETWORKS" ]]; then
+
+  echo "❌ PR networks still exist:"
+  echo "$REMAINING_NETWORKS"
+
+  CLEANUP_FAILED=1
 
 else
 
@@ -285,13 +438,27 @@ else
 fi
 
 
+# ----------------------------
+# Volumes
+# ----------------------------
+
 echo ""
 echo "Volumes:"
-if docker volume ls \
-  --format '{{.Name}}' \
-  | grep -E "^${PROJECT_NAME}_" ; then
 
-  echo "❌ PR volumes still exist"
+REMAINING_VOLUMES="$(
+  docker volume ls \
+    --format '{{.Name}}' \
+    2>/dev/null \
+    | grep -E "^${PROJECT_NAME}_" \
+    || true
+)"
+
+if [[ -n "$REMAINING_VOLUMES" ]]; then
+
+  echo "❌ PR volumes still exist:"
+  echo "$REMAINING_VOLUMES"
+
+  CLEANUP_FAILED=1
 
 else
 
@@ -299,6 +466,10 @@ else
 
 fi
 
+
+# ----------------------------
+# Caddy route
+# ----------------------------
 
 if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
@@ -313,9 +484,9 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
     curl -s \
       "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
-      | jq . || true
+      | jq . 2>/dev/null || true
 
-    exit 1
+    CLEANUP_FAILED=1
 
   else
 
@@ -326,10 +497,30 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 fi
 
 
+# ============================================================
+# FINAL RESULT
+# ============================================================
+
 echo ""
+
+if [[ "$CLEANUP_FAILED" -ne 0 ]]; then
+
+  echo "========================================"
+  echo "❌ Preview cleanup FAILED"
+  echo "========================================"
+  echo "PR: #${PR_NUMBER}"
+  echo "========================================"
+  echo ""
+
+  exit 1
+
+fi
+
+
 echo "========================================"
 echo "✅ Preview cleanup completed"
 echo "========================================"
 echo "PR: #${PR_NUMBER}"
 echo "========================================"
 echo ""
+```
