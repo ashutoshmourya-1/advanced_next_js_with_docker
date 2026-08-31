@@ -128,18 +128,27 @@ fi
 echo ""
 echo "🌐 Step 5: Removing leftover PR networks..."
 
-docker network ls \
-  --format '{{.Name}}' \
-  | grep -E "^${PROJECT_NAME}_" \
-  | while read -r NETWORK; do
+PR_NETWORKS="$(
+  docker network ls \
+    --format '{{.Name}}' \
+    | grep -E "^${PROJECT_NAME}_" \
+    || true
+)"
 
-      echo "🗑️ Removing network: $NETWORK"
+if [[ -n "$PR_NETWORKS" ]]; then
 
-      docker network rm "$NETWORK" >/dev/null 2>&1 || true
+  echo "$PR_NETWORKS" | while read -r NETWORK; do
+    echo "🗑️ Removing network: $NETWORK"
+    docker network rm "$NETWORK" >/dev/null 2>&1 || true
+  done
 
-    done
+  echo "✓ PR networks cleaned"
 
-echo "✓ PR networks cleaned"
+else
+
+  echo "✓ No leftover PR networks"
+
+fi
 
 echo ""
 echo "🖼️ Step 6: Removing PR images..."
@@ -195,18 +204,27 @@ fi
 echo ""
 echo "💾 Step 8: Removing leftover PR volumes..."
 
-docker volume ls \
-  --format '{{.Name}}' \
-  | grep -E "^${PROJECT_NAME}_" \
-  | while read -r VOLUME; do
+PR_VOLUMES="$(
+  docker volume ls \
+    --format '{{.Name}}' \
+    | grep -E "^${PROJECT_NAME}_" \
+    || true
+)"
 
-      echo "🗑️ Removing volume: $VOLUME"
+if [[ -n "$PR_VOLUMES" ]]; then
 
-      docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  echo "$PR_VOLUMES" | while read -r VOLUME; do
+    echo "🗑️ Removing volume: $VOLUME"
+    docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  done
 
-    done
+  echo "✓ PR volumes cleaned"
 
-echo "✓ PR volumes cleaned"
+else
+
+  echo "✓ No leftover PR volumes"
+
+fi
 
 
 echo ""
