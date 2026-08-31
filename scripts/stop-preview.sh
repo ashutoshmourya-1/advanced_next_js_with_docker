@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 
 set -u
@@ -19,7 +18,6 @@ echo "========================================"
 echo "🧹 Cleaning Preview PR #${PR_NUMBER}"
 echo "========================================"
 
-
 # ============================================================
 # STEP 1 — REMOVE CADDY ROUTE
 # ============================================================
@@ -27,7 +25,7 @@ echo "========================================"
 echo ""
 echo "🔀 Step 1: Removing Caddy route..."
 
-if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "preview-caddy"; then
 
   if curl -fsS "${CADDY_ADMIN}/config/" >/dev/null 2>&1; then
 
@@ -48,13 +46,13 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
       else
 
-        echo "⚠️ Failed to remove Caddy route"
+        echo "⚠️ Caddy route delete failed"
 
       fi
 
     else
 
-      echo "✓ Caddy route ${CADDY_ROUTE_ID} does not exist"
+      echo "✓ Caddy route does not exist"
 
     fi
 
@@ -80,16 +78,18 @@ fi
 echo ""
 echo "🔍 Step 2: Verifying Caddy route cleanup..."
 
-if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "preview-caddy"; then
 
   if curl -fsS \
     "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
     >/dev/null 2>&1; then
 
-    echo "❌ Caddy route STILL EXISTS"
+    echo "❌ Caddy route still exists"
+    echo "   Refusing to continue."
 
     curl -s \
       "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
+      2>/dev/null \
       | jq . 2>/dev/null || true
 
     exit 1
@@ -102,13 +102,13 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
 else
 
-  echo "✓ Caddy is not running; route cannot exist"
+  echo "✓ Caddy is not running"
 
 fi
 
 
 # ============================================================
-# STEP 3 — REMOVE DOCKER COMPOSE STACK
+# STEP 3 — REMOVE COMPOSE STACK
 # ============================================================
 
 echo ""
@@ -135,12 +135,13 @@ echo "🧨 Step 4: Removing leftover PR containers..."
 LEFTOVER_CONTAINERS="$(
   docker ps -aq \
     --filter "name=${PROJECT_NAME}-" \
-    2>/dev/null || true
+    2>/dev/null \
+    || true
 )"
 
 if [[ -n "$LEFTOVER_CONTAINERS" ]]; then
 
-  echo "$LEFTOVER_CONTAINERS" | while read -r CONTAINER_ID; do
+  while read -r CONTAINER_ID; do
 
     [[ -z "$CONTAINER_ID" ]] && continue
 
@@ -157,7 +158,7 @@ if [[ -n "$LEFTOVER_CONTAINERS" ]]; then
 
     docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
 
-  done
+  done <<< "$LEFTOVER_CONTAINERS"
 
   echo "✓ Leftover PR containers removed"
 
@@ -227,9 +228,7 @@ if [[ -n "$PR_IMAGES" ]]; then
 
     echo "🗑️ Removing image: $IMAGE"
 
-    docker image rm -f "$IMAGE" >/dev/null 2>&1 || {
-      echo "⚠️ Could not remove image: $IMAGE"
-    }
+    docker image rm -f "$IMAGE" >/dev/null 2>&1 || true
 
   done <<< "$PR_IMAGES"
 
@@ -248,14 +247,13 @@ echo ""
 echo "🔎 Step 7: Checking leftover PR image IDs..."
 
 PR_IMAGE_IDS="$(
-  docker images -aq \
-    2>/dev/null \
+  docker images -aq 2>/dev/null \
     | while read -r IMAGE_ID; do
 
         [[ -z "$IMAGE_ID" ]] && continue
 
         docker inspect \
-          --format '{{join .RepoTags "\n"}}' \
+          --format '{{range .RepoTags}}{{println .}}{{end}}' \
           "$IMAGE_ID" \
           2>/dev/null \
           | grep -E "^${PROJECT_NAME}-" \
@@ -275,11 +273,11 @@ if [[ -n "$PR_IMAGE_IDS" ]]; then
 
     echo "🗑️ Removing leftover image ID: $IMAGE_ID"
 
-    docker image rm -f "$IMAGE_ID" >/dev/null 2>&1 || {
-      echo "⚠️ Could not remove image ID: $IMAGE_ID"
-    }
+    docker image rm -f "$IMAGE_ID" >/dev/null 2>&1 || true
 
   done <<< "$PR_IMAGE_IDS"
+
+  echo "✓ Leftover PR image IDs removed"
 
 else
 
@@ -311,9 +309,7 @@ if [[ -n "$PR_VOLUMES" ]]; then
 
     echo "🗑️ Removing volume: $VOLUME"
 
-    docker volume rm "$VOLUME" >/dev/null 2>&1 || {
-      echo "⚠️ Could not remove volume: $VOLUME"
-    }
+    docker volume rm "$VOLUME" >/dev/null 2>&1 || true
 
   done <<< "$PR_VOLUMES"
 
@@ -347,13 +343,12 @@ echo "✓ Dangling Docker artifacts cleaned"
 echo ""
 echo "🔍 Step 10: Final verification..."
 
-
 CLEANUP_FAILED=0
 
 
-# ----------------------------
+# ------------------------------------------------------------
 # Containers
-# ----------------------------
+# ------------------------------------------------------------
 
 echo ""
 echo "Containers:"
@@ -380,9 +375,9 @@ else
 fi
 
 
-# ----------------------------
+# ------------------------------------------------------------
 # Images
-# ----------------------------
+# ------------------------------------------------------------
 
 echo ""
 echo "Images:"
@@ -409,9 +404,9 @@ else
 fi
 
 
-# ----------------------------
+# ------------------------------------------------------------
 # Networks
-# ----------------------------
+# ------------------------------------------------------------
 
 echo ""
 echo "Networks:"
@@ -438,9 +433,9 @@ else
 fi
 
 
-# ----------------------------
+# ------------------------------------------------------------
 # Volumes
-# ----------------------------
+# ------------------------------------------------------------
 
 echo ""
 echo "Volumes:"
@@ -467,11 +462,11 @@ else
 fi
 
 
-# ----------------------------
+# ------------------------------------------------------------
 # Caddy route
-# ----------------------------
+# ------------------------------------------------------------
 
-if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "preview-caddy"; then
 
   echo ""
   echo "Caddy route:"
@@ -484,6 +479,7 @@ if docker ps --format '{{.Names}}' | grep -qx "preview-caddy"; then
 
     curl -s \
       "${CADDY_ADMIN}/id/${CADDY_ROUTE_ID}" \
+      2>/dev/null \
       | jq . 2>/dev/null || true
 
     CLEANUP_FAILED=1
@@ -516,11 +512,9 @@ if [[ "$CLEANUP_FAILED" -ne 0 ]]; then
 
 fi
 
-
 echo "========================================"
 echo "✅ Preview cleanup completed"
 echo "========================================"
 echo "PR: #${PR_NUMBER}"
 echo "========================================"
 echo ""
-```
