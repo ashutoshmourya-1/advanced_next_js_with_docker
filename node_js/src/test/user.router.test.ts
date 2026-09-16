@@ -2,6 +2,23 @@ import request from "supertest";
 import app from "../app.js";
 import { pool } from "../config/database.js";
 
+jest.mock("../middlewares/ratelimiting.middleware.js", () => ({
+  fetch_limiter: (
+    _req: unknown,
+    _res: unknown,
+    next: () => void,
+  ) => next(),
+  insert_update_limiter: (
+    _req: unknown,
+    _res: unknown,
+    next: () => void,
+  ) => next(),
+  delete_limiter: (
+    _req: unknown,
+    _res: unknown,
+    next: () => void,
+  ) => next(),
+}));
 
 jest.mock("../config/database.js", () => ({
   pool: {
