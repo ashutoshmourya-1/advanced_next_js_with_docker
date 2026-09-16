@@ -1,20 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { DockerFormButton } from "@components/buttons/index";
-import { UserDetailsTable } from "@components/tables/index";
-import UserRepository from "@repositories/user_repository";
-import { type JSX } from "react";
+import { UserDetails } from "@components/index";
+import { Suspense, type JSX } from "react";
 
 export default async function Docker(): Promise<JSX.Element> {
-  const user_repository = new UserRepository();
-  const res = await user_repository.get_user_details();
-  if (!res.ok) {
-    return (
-      <div className="text-red-600 m-auto">
-        Error occured: <span className="text-black">{res.error.message}</span>
-      </div>
-    );
-  }
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black text-2xl font-black">
       <h1>Pls add your details here</h1>
@@ -24,7 +14,15 @@ export default async function Docker(): Promise<JSX.Element> {
       <h1 className="text-3xl mt-5">
         These details are the fetched directly from postgres:
       </h1>
-      <UserDetailsTable data={res.data} />
+      <Suspense
+        fallback={
+          <div className="mt-5 text-xl font-normal">
+            Loading user details...
+          </div>
+        }
+      >
+        <UserDetails />
+      </Suspense>
     </div>
   );
 }
