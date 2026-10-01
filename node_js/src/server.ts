@@ -1,14 +1,7 @@
-import { configDotenv } from "dotenv";
+import "dotenv/config";
+import app from "./app.js";
 
-configDotenv();
-
-const { default: app } = await import("./app.js");
-
-const server_start = (): void => {
-  app.listen(process.env.PORT, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Server is running on port: ${process.env.PORT}`);
-  });
-};
-
-server_start();
+app.listen(process.env.PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Server is running on port: ${process.env.PORT}`);
+});
