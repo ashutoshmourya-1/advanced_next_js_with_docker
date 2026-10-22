@@ -22,7 +22,7 @@ describe("Docker page", () => {
     render(page);
 
     expect(
-      screen.getByText("Pls add your details here"),
+      screen.getByText("Please add or update your details here"),
     ).toBeInTheDocument();
 
     expect(
@@ -33,7 +33,7 @@ describe("Docker page", () => {
 
     expect(
       screen.getByText(
-        "These details are the fetched directly from postgres:",
+        "User Deatils:",
       ),
     ).toBeInTheDocument();
 
